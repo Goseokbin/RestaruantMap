@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet" type="text/css">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" type="text/css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src='annyang.js'></script>
+  <link rel="shortcut icon" type="image/x-icon" href="siksa.ico" />
+  <title>Food Share</title>
+  <script>
+  var check=true;
+  function astart(){
+  if(check==true){
+  changeImg();
+  annyang.start({ autoRestart: false, continuous: true });
+  var recognition = annyang.getSpeechRecognizer();
+  var final_transcript = '';
+  recognition.interimResults = true;
+  recognition.onresult = function(event) {
+      var interim_transcript = '';
+      final_transcript = '';
+      for (var i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+              final_transcript += event.results[i][0].transcript;
+              console.log("final_transcript="+final_transcript);
+              //annyang.trigger(final_transcript); //If the sentence is "final" for the Web Speech API, we can try to trigger the sentence
+          } else {
+              interim_transcript += event.results[i][0].transcript;
+              console.log("interim_transcript="+interim_transcript);
+          }
+          
+      }
+     document.getElementById('searchbox').value = final_transcript;
+      console.log('interim='+interim_transcript+'|final='+final_transcript);
+  }
+  check=false;
+  }
+  else{
+  	annyang.abort();
+  	changeImg2();
+  	check=true;
+  }
+
+  };
+  function changeImg(){
+  	  var img1=document.getElementById('speech_img');
+  	   img1.src="image/55.gif";
+  	   img1.style.width='80px';
+  	   img1.style.height='50px';
+  	   
+  }
+  function changeImg2(){
+  	  var img1=document.getElementById('speech_img');
+  	   img1.src="mic2.png";
+  	   
+  }
+  </script>
+<link rel="stylesheet" type="text/css" href="main_style.css">
+	
+</head>
+
+<body id="myPage" data-spy="scroll" data-target=".navbar" data-offset="50">
+<nav class="navbar navbar-default navbar-fixed-top">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>                        
+      </button>
+      <a class="navbar-brand" href="#myPage">FOOD SHARE</a>
+    </div>
+    <div class="collapse navbar-collapse" id="myNavbar">
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="#myPage">HOME</a></li>
+        <li><a href="#chart">MAP</a></li>
+        <li><a href="#empty_place">SEARCH-RESULT</a></li>
+        <li class="dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#">MORE
+          <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="#hrFooter">Jeong Ye Won</a></li>
+            <li><a href="#hrFooter">Kim Jin Oh</a></li>
+            <li><a href="#hrFooter">KoSeokBin</a></li> 
+          </ul>
+        </li>
+        <li><a href="#"><span class="glyphicon glyphicon-search"></span></a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div id = "search">
+	<div id="search-background">
+ <div class="search-area" >
+		<h3 id = "main_text"></h3>
+		<div class="box">
+			<div class="container-i">
+				<input id="searchbox" type="search" placeholder="Search..." />
+				<a class="icon" href="#empty_place" onclick="SearchResult()" ><i class="glyphicon glyphicon-search"></i></a>
+				<button id="speech_Button" onclick="astart()"><img id="speech_img" src="mic2.png" alt="Start Listening...."></button>			
+			</div>
+		</div>
+	</div>
+	<div class="img-cover"></div>
+	</div>
+</div>
+ 
+ <div>
+ <div id="part">
+ <div id="info">
+</div>
+ 
+ 	<div id="chart"></div>
+ 	<script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.5.0/d3.js"></script>
+    <script>
+    var width = 800,
+        height = 850;
+    
+    var active = d3.select(null);
+
+    var svg = d3.select("#chart").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+    
+    svg.append("rect")
+	.attr("class", "background")
+	.attr("fill", "white")
+	.attr("width", width)
+	.attr("height", height)
+	.on("click", reset);
+
+    var map = svg.append("g").attr("id", "map"),
+        places = svg.append("g").attr("id", "places");
+    	placesDetails = svg.append("g").attr("id", "placesDetails");
+
+    var projection = d3.geo.mercator()
+        .center([127.4346805,36.6392137])
+        .scale(6000)
+        .translate([width/2, height/2.5]);
+
+
+    var path = d3.geo.path().projection(projection);
+
+    d3.json("chungbuk_municipalities_topo_simple.json", function(error, data) {
+      var features = topojson.feature(data, data.objects.provinces).features;
+      map.selectAll('path')
+          .data(features)
+        .enter().append('path')
+          .attr('class', function(d) { console.log(); return 'municipality c' + d.properties.code })
+          .attr('d', path)
+      	  .on("click", clicked)
+      	  .on("mouseover", function(d) {
+      		d3.select(this).classed("highlighted", true)})
+			
+      	.on("mouseout", function(d) {
+          	d3.select(this).classed("highlighted", false);
+      
+     
+		});
+      
+          
+      map.selectAll('text')
+      .data(features)
+    .enter().append("text")
+      .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+      .attr("dy", ".35em")
+      .attr("class", "municipality-label")
+      .text(function(d) { return d.properties.name; }) 
+		});
+
+   	d3.csv("places.csv", function(data) {
+        places.selectAll("circle")
+            .data(data)
+          .enter().append("circle")
+            .attr("cx", function(d) { return projection([d.lon, d.lat])[0]; })
+            .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
+            .attr("r", function(d){ return d.r})
+        	.on("click", clickedCircle);
+        
+        
+ 		 });
+        
+   	d3.csv("placesDetails.csv", function(data) {
+   		placesDetails.selectAll("circle")
+		       .data(data)
+		     .enter().append("circle")
+		       .attr("cx", function(d) { return projection([d.lon, d.lat])[0]; })
+		       .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
+		       .attr("r", 2)
+		       .style("visibility", "hidden")
+		       .on("mouseover", function(d) {
+		    	   
+		    	   var html_text = "";
+		    	   
+		    	  /*  html_text += '<p><i>'+ d.name +'</i></p>';
+		    	   html_text += '<p><i>'+ d.number +'</i></p>';
+		    	   html_text += '<p><i>'+ d.address +'</i></p>';
+		    	   html_text += '<img src="'+ d.image +'"/>' */
+		    	   
+		    	   html_text += '<h3>'+ d.name +'</h3>';
+		    	   html_text += '<img src="'+ d.image +'"/>';
+		    	   html_text += '<div><p style="text-align: center;">' + d.address + '</p><span style="color: black;">'+ d.number +'</span></div>';
+
+		    	   var point = d3.mouse(this);
+		    	   point[0] = point[0] + 300;
+		    	   point[1] = point[1] + 600;
+					d3.select("#info")
+						.style("left", function(d) { return point[0]+"px"; })
+						.style("top", function(d) { return point[1]+"px"; })
+						.style("visibility", "visible")
+						.html(html_text);
+				})
+				.on("mouseout", function(d) {
+					d3.select("#info")
+					.style("visibility", "hidden");
+				});
+		  
+   		placesDetails.selectAll("text")
+		       .data(data)
+		     .enter().append("text")
+		       .attr("x", function(d) { return projection([d.lon, d.lat])[0]; })
+		       .attr("y", function(d) { return projection([d.lon, d.lat])[1] + 8; })
+		       .text(function(d) { return d.name })
+		       .style("visibility", "hidden");
+            
+   		
+   		
+	});
+/* 
+        places.selectAll("text")
+            .data(data)
+          .enter().append("text")
+            .attr("x", function(d) { return projection([d.lon, d.lat])[0] - 10; })
+            .attr("y", function(d) { return projection([d.lon, d.lat])[1] + 8; })
+            .text(function(d) { return d.name }); */
+   
+
+   function clicked(d){
+	   
+	  if (active.node() === this) return reset();
+		active.classed("active", false);
+		active = d3.select(this).classed("active", true);
+
+		var bounds = path.bounds(d),
+				dx = bounds[1][0] - bounds[0][0],
+				dy = bounds[1][1] - bounds[0][1],
+				x = (bounds[0][0] + bounds[1][0]) / 2,
+				y = (bounds[0][1] + bounds[1][1]) / 2,
+				scale = .7 / Math.max(dx / width, dy / height),
+				translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+		map.transition()
+				.duration(750)
+				.style("stroke-width", 1.5 / scale + "px")
+				.attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+		
+		placesDetails.transition()
+			.duration(750)
+			.style("stroke-width", 1.5 / scale + "px")
+			.attr("transform", "translate(" + translate + ")scale(" + scale + ")");
+			
+		d3.selectAll(".path").classed("selected", false);
+		d3.selectAll(".path").classed("notselected", false);
+	   
+		if( d3.select(this).classed("path") ) {
+			d3.selectAll(".path").classed("notselected", true);
+			d3.select(this).classed("notselected", false);
+			d3.select(this).classed("selected", true);
+		}
+		
+		places.selectAll("circle")
+			.style("visibility", "hidden");
+		
+		placesDetails.selectAll("circle")
+			.style("visibility", "visible");
+		
+		
+
+	   
+   }
+   
+   function reset() {
+		active.classed("active", false);
+		active = d3.select(null);
+
+		map.transition()
+				.duration(750)
+				.style("stroke-width", "1.5px")
+				.attr("transform", "");
+
+		d3.selectAll(".path").classed("selected", false);
+		d3.selectAll(".path").classed("notselected", false);
+		
+		places.selectAll("circle")
+			.style("visibility", "visible");
+		
+		placesDetails.selectAll("circle")
+		.style("visibility", "hidden");
+		
+	}
+   
+   function clickedCircle(d){
+	   if(d.idx == '1'){
+		   document.getElementById('test').innerHTML = "청주";
+		   document.getElementById('cheongju').style.display="block";
+		   document.getElementById('daejeon').style.display="none";
+		   document.getElementById('seoul').style.display="none";   
+		   document.getElementById('busan').style.display="none";
+		   document.getElementById('gwangju').style.display="none";
+		   document.getElementById('naju').style.display="none";
+		   document.getElementById('changwon').style.display="none";
+		   document.getElementById('chungju').style.display="none";
+		   document.getElementById('jeju').style.display="none";
+		   document.getElementById('aziz').style.display="none";
+	   }else if(d.idx == '2'){
+		   document.getElementById('test').innerHTML = "대전";
+		   document.getElementById('cheongju').style.display="none";
+		   document.getElementById('daejeon').style.display="block";
+		   document.getElementById('seoul').style.display="none";
+		   document.getElementById('busan').style.display="none";  
+		   document.getElementById('gwangju').style.display="none";
+		   document.getElementById('naju').style.display="none";
+		   document.getElementById('changwon').style.display="none";
+		   document.getElementById('chungju').style.display="none";
+		   document.getElementById('jeju').style.display="none";
+		   document.getElementById('aziz').style.display="none";
+	   }else if(d.idx == '3'){
+		   document.getElementById('test').innerHTML = "서울 ";
+		   document.getElementById('cheongju').style.display="none";
+		   document.getElementById('daejeon').style.display="none";
+		   document.getElementById('seoul').style.display="block";
+		   document.getElementById('busan').style.display="none";
+		   document.getElementById('gwangju').style.display="none";
+		   document.getElementById('naju').style.display="none";
+		   document.getElementById('changwon').style.display="none";
+		   document.getElementById('chungju').style.display="none";
+		   document.getElementById('jeju').style.display="none";
+		   document.getElementById('aziz').style.display="none";
+	   }else if(d.idx == '4'){
+		   document.getElementById('test').innerHTML = "부산 ";
+		   document.getElementById('cheongju').style.display="none";
+		   document.getElementById('daejeon').style.display="none";
+		   document.getElementById('seoul').style.display="none";
+		   document.getElementById('busan').style.display="block";  
+		   document.getElementById('gwangju').style.display="none";
+		   document.getElementById('naju').style.display="none";
+		   document.getElementById('changwon').style.display="none";
+		   document.getElementById('chungju').style.display="none";
+		   document.getElementById('jeju').style.display="none";
+		   document.getElementById('aziz').style.display="none";
+		   
+	   }else if(d.idx == '5'){
+		   document.getElementById('test').innerHTML = "광주";
+		   document.getElementById('cheongju').style.display="none";
+		   document.getElementById('daejeon').style.display="none";
+		   document.getElementById('seoul').style.display="none";
+		   document.getElementById('busan').style.display="none";  
+		   document.getElementById('gwangju').style.display="block";
+		   document.getElementById('naju').style.display="none";
+		   document.getElementById('changwon').style.display="none";
+		   document.getElementById('chungju').style.display="none";
+		   document.getElementById('jeju').style.display="none";
+		   document.getElementById('aziz').style.display="none";
+	   }
+	   else if(d.idx == '6'){
+		   document.getElementById('test').innerHTML = "제주";
+		   document.getElementById('cheongju').style.display="none";
+		   document.getElementById('daejeon').style.display="none";
+		   document.getElementById('seoul').style.display="none";
+		   document.getElementById('busan').style.display="none";  
+		   document.getElementById('gwangju').style.display="none";
+		   document.getElementById('naju').style.display="block";
+		   document.getElementById('changwon').style.display="none";
+		   document.getElementById('chungju').style.display="none";
+		   document.getElementById('jeju').style.display="block";
+		   document.getElementById('aziz').style.display="none";
+	   }
+	   
+   
+   }
+   
+    </script>
+	<hr>
+	<div id= "empty_place"></div>
+	<div id="search_result" class="container" >
+		<br><br>
+		<div>
+		<div id="searchresult" >
+			<p id="x"> 검색 결과&nbsp;:&nbsp;</p><p id="test"> </p>
+			<script>
+
+				function SearchResult(){<!--Function Search result : Express Search result-->
+					var search = document.getElementById("searchbox").value;
+					document.getElementById("test").innerHTML = search;
+					
+					if( search == "") {
+						alert("검색란이 비어있습니다!");
+					}else if(search == "청주" || search == "cheongju"){
+						document.getElementById('cheongju').style.display="block";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}else if(search == "대전" || search == "daejeon"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="block";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}else if(search == "서울" || search == "seoul"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="block";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}else if(search == "부산" || search == "busan"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="block";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}else if(search == "광주" || search == "gwangju"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="block";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}
+					else if(search == "나주" || search == "naju"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="block";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}
+					else if(search == "창원" || search == "changwon"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="block";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}
+					else if(search == "충주" || search == "chungju"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="block";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="none";
+					}
+					else if(search == "제주" || search == "jeju"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="block";
+						document.getElementById('aziz').style.display="none";
+					}
+					else if(search == "울릉도" || search == "aziz"){
+						document.getElementById('cheongju').style.display="none";
+						document.getElementById('daejeon').style.display="none";
+						document.getElementById('seoul').style.display="none";   
+						document.getElementById('busan').style.display="none";
+						document.getElementById('gwangju').style.display="none";
+						document.getElementById('naju').style.display="none";
+						document.getElementById('changwon').style.display="none";
+						document.getElementById('chungju').style.display="none";
+						document.getElementById('jeju').style.display="none";
+						document.getElementById('aziz').style.display="block";
+					}
+					
+					location.href = "#home";
+				}
+			</script>
+			
+			<br><br><br>
+			
+			<div id = "result">
+				<div id="cheongju" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail">
+							<img src="image/matjoeunjip.jpg" alt="matjoeunjip" ><br>
+							<p><strong>충북대학교 정문 맛좋은집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>No number information</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 청주시 흥덕구 내수동로 38-4 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail">
+							<img src="image/hatwang.png" alt="mandoo" ><br>
+							<p><strong>충북대학교 정문 햇살 왕만두</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-264-7050</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 청주시 흥덕구 사직대로 82번길 14</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/tasco.png" alt="tasco" ><br>
+							<p><strong>산남동 타스코</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-285-5040</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 청주시 서원구 산남로62번길 35 미소시티블루2 1층 109호 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/unisshrimp.png" alt="unisshrimp" ><br>
+							<p><strong>상당구 유니드쉬림프</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-223-3626</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 청주시 상당구 중앙로 9 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/ddoki.png" alt="ddoki" ><br>
+							<p><strong>성안길 두끼 떡볶이</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-222-2771</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 청주시 상당구 사직대로 372</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			
+			<div id="seoul" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/shakeshake.png" alt="shakeshake" >
+							<p><strong>강남 쉐이크쉑</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-553-5576</p>
+							<p><span class="glyphicon glyphicon-map-marker"> </span>강남구 강남대로 452 대연빌딩 1층</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/+84.png" alt="+84" >
+							<p><strong>인사동 플러스84</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-735-1112</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>종로구 인사동16길 6 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/appletree.png" alt="appletree" >
+							<p><strong>인사동 사과나무</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-722-5051</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span> 종로구 인사동16길 6 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/coffeegallery.png" alt="coffeegallery" >
+							<p><strong>강남 커피갤러리</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-553-9545</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span> 강남구 강남대로102길 13-8 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/messiya.png" alt="messiya" >
+							<p><strong>경리단길 메시야</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-6402-0208</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>용산구 회나무로13가길 23 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/1.jpeg" alt="다성일식" >
+							<p><strong>다성일식</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-338-8951</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>신촌동 신촌로11길 6 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/2.jpeg" alt="봉산집" >
+							<p><strong>봉산집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-793-5022</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>한강대로62나길 24 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/3.jpg" alt="창고43" >
+							<p><strong>창고43</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-786-9912</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>영등포구 여의도동 44-37 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/4.jpeg" alt="돕감자탕" >
+							<p><strong>돕감자탕</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-499-2838</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>아차산로31길 9 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/5.jpeg" alt="대보명가" >
+							<p><strong>대보명가</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-907-6998</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>수유동 563-14</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/6.jpeg" alt="해뜨는집" >
+							<p><strong>해뜨는집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-764-6354</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>동소문동1가 62 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/7.jpeg" alt="아이 해브어 드림" >
+							<p><strong>아이 해브어 드림</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-3453-7697</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>테헤란로5길 7 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/8.jpeg" alt="아현동 간장게장" >
+							<p><strong>아현동 간장게장</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-312-7530</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>굴레방로 13 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/9.jpeg" alt="왕소금구이" >
+							<p><strong>왕소금구이</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-545-6844</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>논현동 98-12번지</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/10.jpeg" alt="라틀리에 모니크" >
+							<p><strong>라틀리에 모니크</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-549-9210</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>백제고분로39길 6-13 </p>
+						</div>
+					</div>
+				
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/11.jpeg" alt="충주집" >
+							<p><strong>충주집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-923-1068</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>제기동 138-2 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/12.jpg" alt="영화루" >
+							<p><strong>영화루</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-738-1218</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>종로구 누하동 25-1</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/13.jpeg" alt="일품헌" >
+							<p><strong>일품헌</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-574-7117</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>서초구 양재동 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/14.jpeg" alt="오가와" >
+							<p><strong>오가와</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-735-1001</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>당주동 새문안로5길 19</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/15.jpg" alt="까사디노아" >
+							<p><strong>까사디노아</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-3142-1108</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>마포구 연남동 257-8 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/16.jpeg" alt="충무로 주꾸미 불고기" >
+							<p><strong>충무로 주꾸미 불고기</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>02-2279-0803</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>중구 필동1가 3-20</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			
+			<div id="daejeon" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/farther'sstake.png" alt="farther'sstake" >
+							<p><strong>둔산동 파더스 스테이크</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>042-472-0692</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>서구 둔산로 32-11 둔산2동 992 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/robocook.png" alt="robocook" >
+							<p><strong>둔산동 로보쿡</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>042-471-5009</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>대전광역시 서구 둔산로 15 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/sungsimdang.png" alt="sungsimdang" >
+							<p><strong>성심당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>1588-8069</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>대전광역시 중구 대종로480번길 15 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/harehare.png" alt="harehare" >
+							<p><strong>하레하레 빵집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>042-483-1595</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>대전광역시 서구 둔산로 155 크로바아파트 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/godpohosan.png" alt="godpohosan" >
+							<p><strong>유성 갓포호산</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>042-825-0653</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>대전광역시 유성구 문화원로 112 </p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			
+			<div id="busan" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/blackup.png" alt="blackup">
+							<p><strong>서면 블랙업 커피</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-806-4952</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>부산시 부산진구 부전동 168-152</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/milmyun.png" alt="milmyun" >
+							<p><strong>원조밀면</strong></p>
+							<p><span class="glyphicon glyphicon-phone">051-244-2555</span></p>
+							<p><span class="glyphicon glyphicon-map-marker">부산시 중구 부평동1가 29-97</span></p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/kkokbab.png" alt="kkokbab" >
+							<p><strong>밀양 순대돼지국밥</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-731-7005</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>부산시 해운대구 우동 543-1</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/makarong.png" alt="makarong" >
+							<p><strong>아뜰리에 마카롱</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-818-2908</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>부산시 부산진구 전포동 680-18</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/farmer's.png" alt="farmer's" >
+							<p><strong>중구 파머스버거</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-244-5706</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>부산시 중구 대청동 2가 35-1</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/bonjeon.jpg" alt="bonjeon" >
+							<p><strong>본전 돼지국밥</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-441-2946</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>동구 초량동 중앙대로214번길 3-8</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/sinbal.jpg" alt="sinbal" >
+							<p><strong>신발원</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-467-0177</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>동구 초량1동 대영로243번길 62</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jok.jpg" alt="jok" >
+							<p><strong>부산족발</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-245-5359</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>중구 부평동 중구로21번길 8</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/ddong.jpg" alt="ddong" >
+							<p><strong>뚱보집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-246-7466</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>중구 중앙동 중앙대로41번길 1-18</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/choryang.jpg" alt="choryang" >
+							<p><strong>초량밀면</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>051-462-1575</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>동구 초량2동 중앙대로 225</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			<div id="gwangju" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/nineload.png" alt="nineload" >
+							<p><strong>나인로드 피제리아</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-234-5957</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주시 동구 황금동 11-4 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/songjung.png" alt="songjung" >
+							<p><strong>송정 떡갈비</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-944-1439</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주시 광산구 송정동 826-3</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/gwangyang.png" alt="gwangyang" >
+							<p><strong>광양 숯불구이</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-226-9090</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주시 동구 지산동 718-3</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/goongjun.png" alt="goongjun" >
+							<p><strong>궁전제과</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-222-3477</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주시 동구 충장로1가 1-9 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/narun.png" alt="narun" >
+							<p><strong>나른한 오후</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-223-1402</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주시 동구 지산동 193-4</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/songhak.jpeg" alt="songhak" >
+							<p><strong>송학 한정식</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-385-3333</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주광역시 서구 치평동 1185-3</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/mahanji.jpg" alt="mahanji" >
+							<p><strong>마한지</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-234-9260</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주광역시 동구 광산동 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/youngmi.jpg" alt="youngmi" >
+							<p><strong>영미 오리탕</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-527-0249</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주광역시 북구 중앙동 경양로 126</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/tofu.jpg" alt="tofu" >
+							<p><strong>달맞이 흑두부</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>062-972-8465</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>광주광역시 광산구 신창동 607-22</p>
+						</div>
+					</div>
+					
+				</div>
+				</div>
+			</div>
+			<div id="naju" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/najugomtang.jpg" alt="나주곰탕하얀집" >
+							<p><strong>나주곰탕하얀집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>061-333-4292</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>전라남도 나주시 중앙동 48-17 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/nampyunghalmae.JPG" alt="남평할매집" >
+							<p><strong>남평할매집</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>061-334-4682</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>전라남도 나주시 금계동 19</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/noan.jpeg" alt="노안곰탕" >
+							<p><strong>노안 곰탕</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>061-333-2053</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>전라남도 나주시 금계동 금성관길 1-3</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			<div id="changwon" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/nampyunghalmae.jpg" alt="이바돔감자탕" >
+							<p><strong>이바돔감자탕</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>055-261-1301</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>경상남도 창원시 용호동 73-1 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/hanchon.jpg" alt="한촌설렁탕" >
+							<p><strong>한촌설렁탕</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>055-282-3004</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>경상남도 창원시 성산구 상남동 마디미로10번길 12</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/sevenspring.jpg" alt="세븐스프링스" >
+							<p><strong>세븐스프링스</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>055-600-5060</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>경상남도 창원시 의창구 두대동 333 333</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/bulgogi.jpg" alt="판문점불고기" >
+							<p><strong>판문점불고기</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>055-277-3242</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>경상남도 창원시 의창구 팔용동 188-4</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			<div id="chungju" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/chungju-5.jpg" alt="충주 한우프라자" >
+							<p><strong>충주 한우프라자</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-843-5665</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>교현.안림동 금봉대로 382 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/chungju-2.jpg" alt="삼정면옥" >
+							<p><strong>삼정면옥</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-847-4882</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충주시 성서동 312</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/chungju-3.jpeg" alt="청솔 식당" >
+							<p><strong>청솔 식당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-846-6373</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 충주시 수안보면 온천리 235-78</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/chungju-4.jpg" alt="숲속장수촌" >
+							<p><strong>숲속장수촌</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-843-2525</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 충주시 금릉동 121-6</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/chungju-1.jpg" alt="백오동식당" >
+							<p><strong>백오동식당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>043-842-6969</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>충청북도 충주시 교현동 393-7</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			<div id="jeju" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jeju-1.jpeg" alt="우진해장국" >
+							<p><strong>우진해장국</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>064-757-3393</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>제주특별자치도 제주시 삼도2동 서사로 11 </p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jeju-2.jpeg" alt="용이식당" >
+							<p><strong>용이식당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>064-732-7892</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>제주특별자치도 서귀포시 천지동 298-8</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jeju-3.jpeg" alt="상록식당" >
+							<p><strong>상록식당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>064-762-4974</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>제주특별자치도 서귀포시 토평동 1310-20</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jeju-4.jpeg" alt="안거리밖거리" >
+							<p><strong>안거리밖거리</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>064-763-2552</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>제주특별자치도 서귀포시 송산동 584-3</p>
+						</div>
+					</div>
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jeju-5.jpeg" alt="삼보식당" >
+							<p><strong>삼보식당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>064-762-3620</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>제주특별자치도 서귀포시 천지동 319-8</p>
+						</div>
+					</div>
+				</div>
+				</div>
+			</div>
+			<div id="aziz" style="display:none;">
+				<div class="content">
+				<div class="row text-center">
+					<div class="col-sm-4">
+						<div class="thumbnail" >
+							<img src="image/jeju-1.jpeg" alt="아지즈" >
+							<p><strong>정애식당</strong></p>
+							<p><span class="glyphicon glyphicon-phone"></span>054-791-7488</p>
+							<p><span class="glyphicon glyphicon-map-marker"></span>경상북도 울릉군 울릉읍 도동리 310-8</p>
+						</div>
+					</div>															
+				</div>
+				</div>
+			</div>
+			</div>
+ 			<a id = "move_top" href="#"><img src="arrow.png" width="50" height="50"></a>
+		</div>
+		</div>
+	</div>
+	<hr id = hrFooter>
+		<footer class="footer">
+			<h4>Web Based Development</h4>
+			<p>Chungbuk National University  </p>
+			<p>Department of Software  </p>
+			<p>Developer : JeongYeWon, KimJinOh, KoSeokBin </p>
+ 		</footer>
+  </div>
+ </div>
+  
+</body>
+
+<script>
+
+$(document).ready(function(){
+  // Initialize Tooltip
+  $('[data-toggle="tooltip"]').tooltip(); 
+  
+  $(".navbar a, .container-i a").on('click', function(event) {//Function smooth-scroll
+
+    if (this.hash !== "") {
+
+      // Prevent default anchor click behavior
+      event.preventDefault();
+
+      var hash = this.hash;
+      
+      $('html, body').animate({
+        scrollTop: $(hash).offset().top
+      }, 900, function(){
+   
+        window.location.hash = hash;
+      });
+    } 
+  });
+})
+
+	var imgBack = document.getElementById("search-background");
+
+	var urlImg = [ 
+		"./01.jpg",
+		"./02.jpg",
+		"./03.jpg" ];
+	var urlText = [
+		"When you want to eat tteokbokki on an empty stomach ! ",
+		"When you want to eat fresh dessert !  ",
+		"When you want to eat light and delicious ! "
+	];
+	
+	var index = Math.floor(Math.random()*(urlImg.length));
+	 
+	imgBack.style.backgroundImage = "url('"+ urlImg[index] +"')";
+	document.getElementById("main_text").innerHTML = urlText[index];
+	
+	$(function() {
+        $(window).scroll(function() {
+            if ($(this).scrollTop() > 500) {
+                $('#move_top').fadeIn();
+            } else {
+                $('#move_top').fadeOut();
+            }
+        });
+        
+        $("#move_top").click(function() {
+            $('html, body').animate({
+                scrollTop : 0
+            }, 400);
+            return false;
+        });
+  
+    });
+
+	
+
+</script>
+
+<script>
+        var final_transcript = '';
+        var recognizing = false;
+        var ignore_onend;
+        var start_timestamp;
+        var search_input = document.getElementById('searchbox'); // 자신의 검색 상자 태그ID를 여기에 넣습니다.
+        var search_Button = document.getElementById('speech_img');
+
+        if (!('webkitSpeechRecognition' in window)) {
+            upgrade();
+        } else {
+            start_button.style.display = 'inline-block';
+            var recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = function() {
+                recognizing = true;
+                start_img.src = './images/mic-animate.gif';
+            };
+
+            recognition.onerror = function(event) {
+                if (event.error == 'no-speech') {
+                    start_img.src = './images/mic.gif';
+                    ignore_onend = true;
+                }
+                if (event.error == 'audio-capture') {
+                    start_img.src = './images/mic.gif';
+                    ignore_onend = true;
+                }
+                if (event.error == 'not-allowed') {
+                    ignore_onend = true;
+                }
+            };
+
+            recognition.onend = function() {
+                recognizing = false;
+                if (ignore_onend) {
+                    return;
+                }
+                start_img.src = './images/mic.gif';
+                if (!final_transcript) {
+                    return;
+                }
+                if (window.getSelection) {
+                    window.getSelection().removeAllRanges();
+                    var range = document.createRange();
+                    range.selectNode(search_input);
+                    window.getSelection().addRange(range);
+                }
+            };
+
+            recognition.onresult = function(event) {
+                var interim_transcript = '';
+                for (var i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final_transcript += event.results[i][0].transcript;
+                    } else {
+                        interim_transcript += event.results[i][0].transcript;
+                    }
+                }
+                final_transcript = capitalize(final_transcript);
+                search_input.value = linebreak(final_transcript);
+            };
+        }
+
+        function searchVisible() {
+            if(search_Button.style.display != 'inline-block') {
+                search_Button.style.display = 'inline-block';
+            } else {
+                speech_Button.style.display = 'none';
+            }
+        }
+
+        function searchHidden() {
+            if(search_Button.style.display != 'none') {
+                search_Button.style.display = 'none';
+            }
+        }
+
+        function upgrade() {
+            start_button.style.visibility = 'hidden';
+        }
+
+        var two_line = /\n\n/g;
+        var one_line = /\n/g;
+
+        function linebreak(s) {
+            return s.replace(two_line, '<p></p>').replace(one_line, '<br>');
+        }
+
+        var first_char = /\S/;
+
+        function capitalize(s) {
+            return s.replace(first_char, function(m) { return m.toUpperCase(); });
+        }
+
+        function startButton(event) {
+            if (recognizing) {
+                recognition.stop();
+                return;
+            }
+
+            final_transcript = '';
+            recognition.lang = 'ko-KR';
+            recognition.start();
+            ignore_onend = false;
+            search_input.value = '';
+            start_img.src = './images/mic-slash.gif';
+            start_timestamp = event.timeStamp;
+        }
+</script>
+</html>

@@ -1,0 +1,55 @@
+
+  body {
+  	margin: 0;
+    padding: 0;
+    background: url(03.jpg) no-repeat center center fixed;
+	background-size:cover;
+    font: 400 15px/1.8 Lato, sans-serif;
+  }
+  .carousel-caption{
+   background-color: rgba( 0, 0, 0, 0.2 );
+   position:absolute;
+   top : 0;
+   left :0;
+   right:0;
+   bottom: 0;
+   padding-top : 20%;
+   background-size:cover;   
+  }
+ 
+  .carousel-caption h5,h1 {
+      color: #fff !important;
+     text-shadow: 1px 5px 20px white;
+  }
+  .web{
+   font-size:50px;
+  }
+   @media (max-width: 600px) {
+    .carousel-caption {
+      display: none; 
+    }
+  }
+  hr{
+   border:2px solid #d3533c;
+   border-radius:5px;
+   width:120px;
+  }
+  .enter{
+   display:inline-block;
+   background-color:#d3533c;
+   padding : 3px 30px 3px 30px;
+   margin-top:30px;
+   border : none;
+   border-radius : 20px;
+   color:white;
+  }
+  .enter:focus{
+   outline-style:none;
+   
+  }
+  .enter:hover{
+   transition: color 0.4s;
+   background-color:#fff;
+   color:#d3533c;
+   text-decoration:none;
+  }
